@@ -1,14 +1,19 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15
     restart: always
+    container_name: postgresql-server
     ports:
       - "5432:5432"
     volumes:
-      - /var/lib/postgresql/data:/var/lib/postgresql/data
+      - /mnt/postgresql/data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: anton
       POSTGRES_PASSWORD: password
       POSTGRES_DB: otusdb
+    networks:
+      - postgre
+networks:
+  postgre:
+    name: postgre
+    driver: bridge
