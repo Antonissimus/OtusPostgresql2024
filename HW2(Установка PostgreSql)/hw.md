@@ -2,7 +2,15 @@
 Виртуальная машина создана на локальной машине (hyper V: Ubuntu 24.04.1 LTS):
 ![alt text](image.png)
 ### 2. Поставить на нем Docker Engine
+docker установлен:
+```bash
+docker --version
+```
+![alt text](image-1.png)
 ### 3. Сделать каталог /var/lib/postgres
+```bash
+sudo mkdir /var/lib/postgres
+```
 ### 4. Развернуть контейнер с PostgreSQL 15 смонтировав в него /var/lib/postgresql
 ### 5. Развернуть контейнер с клиентом postgres
 ### 6. Подключится из контейнера с клиентом к контейнеру с сервером и сделать таблицу с парой строк
