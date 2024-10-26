@@ -1,9 +1,9 @@
 ## Описание/Пошаговая инструкция выполнения домашнего задания:
-1. создайте виртуальную машину c Ubuntu 20.04/22.04 LTS в ЯО/Virtual Box/докере
+### 1. Создайте виртуальную машину c Ubuntu 20.04/22.04 LTS в ЯО/Virtual Box/докере
    
 Виртуальная машина создана в hyper V на ноутбуке.
 
-2. поставьте на нее PostgreSQL 15 через sudo apt
+### 2. Поставьте на нее PostgreSQL 15 через sudo apt
 
 ```
 # Выполнялось под root'ом
@@ -14,7 +14,7 @@ apt update
 apt install postgresql-15
 ```
 
-3. проверьте что кластер запущен через sudo -u postgres pg_lsclusters
+### 3. Проверьте что кластер запущен через sudo -u postgres pg_lsclusters
 
 ```
 anton@mysql:~$ sudo -u postgres pg_lsclusters
@@ -23,7 +23,7 @@ Ver Cluster Port Status Owner    Data directory              Log file
 15  main    5432 online postgres /var/lib/postgresql/15/main /var/log/postgresql/postgresql-15-main.log
 ```
 
-4. зайдите из под пользователя postgres в psql и сделайте произвольную таблицу с произвольным содержимым
+### 4. Зайдите из под пользователя postgres в psql и сделайте произвольную таблицу с произвольным содержимым
 postgres=# create table test(c1 text);
 postgres=# insert into test values('1');
 \q
@@ -42,7 +42,7 @@ postgres=# \q
 anton@mysql:~$
 ```
 
-5. остановите postgres например через sudo -u postgres pg_ctlcluster 15 main stop
+### 5. Остановите postgres например через sudo -u postgres pg_ctlcluster 15 main stop
 
 ```
 anton@mysql:~$ sudo -u postgres pg_ctlcluster 15 main stop
@@ -53,22 +53,22 @@ anton@mysql:~$ sudo -u postgres pg_ctlcluster 15 main status
 pg_ctl: no server running
 ```
 
-6. создайте новый диск к ВМ размером 10GB
+### 6. Создайте новый диск к ВМ размером 10GB
 
 Сделал диск на 5G:
 
 
-7. добавьте свеже-созданный диск к виртуальной машине - надо зайти в режим ее редактирования и дальше выбрать пункт attach existing disk
+### 7. Добавьте свеже-созданный диск к виртуальной машине - надо зайти в режим ее редактирования и дальше выбрать пункт attach existing disk
 
 ![alt text](image.png)
 
-8. проинициализируйте диск согласно инструкции и подмонтировать файловую систему, только не забывайте менять имя диска на актуальное, в вашем случае это скорее всего будет /dev/sdb - https://www.digitalocean.com/community/tutorials/how-to-partition-and-format-storage-devices-in-linux
+### 8. Проинициализируйте диск согласно инструкции и подмонтировать файловую систему, только не забывайте менять имя диска на актуальное, в вашем случае это скорее всего будет /dev/sdb - https://www.digitalocean.com/community/tutorials/how-to-partition-and-format-storage-devices-in-linux
 
-9. перезагрузите инстанс и убедитесь, что диск остается примонтированным (если не так смотрим в сторону fstab)
+### 9. Перезагрузите инстанс и убедитесь, что диск остается примонтированным (если не так смотрим в сторону fstab)
 
 ![alt text](image-1.png)
 
-10. сделайте пользователя postgres владельцем /mnt/data - chown -R postgres:postgres /mnt/data/
+### 10. Сделайте пользователя postgres владельцем /mnt/data - chown -R postgres:postgres /mnt/data/
 
 ```
 root@mysql:/home/anton# chown -R postgres:postgres /mnt/pgdata/
@@ -80,7 +80,7 @@ drwxr-xr-x  4 postgres postgres 4096 Oct 26 10:18 pgdata
 drwxr-xr-x  3 anton    anton    4096 Oct 20 16:51 postgresql
 ```
 
-11. перенесите содержимое /var/lib/postgres/15 в /mnt/data - mv /var/lib/postgresql/15 /mnt/data
+### 11. Перенесите содержимое /var/lib/postgres/15 в /mnt/data - mv /var/lib/postgresql/15 /mnt/data
 
 ```
 root@mysql:/home/anton# ls -al /mnt/pgdata/main/
@@ -110,7 +110,7 @@ drwx------  2 postgres postgres 4096 Oct 24 17:25 pg_xact
 -rw-------  1 postgres postgres   99 Oct 26 10:19 postmaster.pid
 ```
 
-12. попытайтесь запустить кластер - sudo -u postgres pg_ctlcluster 15 main start
+### 12. Попытайтесь запустить кластер - sudo -u postgres pg_ctlcluster 15 main start
 
 ```
 anton@mysql:~$ sudo -u postgres pg_ctlcluster 15 main status
@@ -118,7 +118,7 @@ pg_ctl: server is running (PID: 921)
 /usr/lib/postgresql/15/bin/postgres "-D" "/var/lib/postgresql/15/main" "-c" "config_file=/etc/postgresql/15/main/postgresql.conf"
 ```
 
-13. напишите получилось или нет и почему
+### 13. Напишите получилось или нет и почему
 
 Получилось... хаха... просто я еще линк сделал:
 ```bash
@@ -126,11 +126,11 @@ ln -s /mnt/pgdata/main /var/lib/postgresql/15/main
 ```
 Думаю что без этого всё сломалось бы...
 
-14. задание: найти конфигурационный параметр в файлах раположенных в /etc/postgresql/15/main который надо поменять и поменяйте его
+### 14. Задание: найти конфигурационный параметр в файлах раположенных в /etc/postgresql/15/main который надо поменять и поменяйте его
 
 Ладно, поменяю.... postgresql.conf :)
 
-15. напишите что и почему поменяли
+### 15. Напишите что и почему поменяли
 
 Добавил строку 
 ```conf
@@ -138,7 +138,7 @@ data_directory = '/mnt/pgdata/main'
 ```
 она указывает где искать данные.
 
-16. попытайтесь запустить кластер - sudo -u postgres pg_ctlcluster 15 main start
+### 16. Попытайтесь запустить кластер - sudo -u postgres pg_ctlcluster 15 main start
 
 ```
 anton@mysql:~$ sudo -u postgres pg_ctlcluster 15 main status
@@ -146,11 +146,11 @@ pg_ctl: server is running (PID: 1822)
 /usr/lib/postgresql/15/bin/postgres "-D" "/mnt/pgdata/main" "-c" "config_file=/etc/postgresql/15/main/postgresql.conf"
 ```
 
-17. напишите получилось или нет и почему
+### 17. Напишите получилось или нет и почему
 
 Всё чики пуки )) Короче можно 2мя способами...
 
-18. зайдите через через psql и проверьте содержимое ранее созданной таблицы
+### 18. Зайдите через через psql и проверьте содержимое ранее созданной таблицы
 
 ```
 anton@mysql:~$ sudo psql -h localhost -U postgres
@@ -168,7 +168,7 @@ postgres=# select * from test;
 postgres=#
 ```
 
-19. задание со звездочкой *: не удаляя существующий инстанс ВМ сделайте новый, поставьте на его PostgreSQL, удалите файлы с данными из /var/lib/postgres, перемонтируйте внешний диск который сделали ранее от первой виртуальной машины ко второй и запустите PostgreSQL на второй машине так чтобы он работал с данными на внешнем диске, расскажите как вы это сделали и что в итоге получилось.
+### 19. Задание со звездочкой *: не удаляя существующий инстанс ВМ сделайте новый, поставьте на его PostgreSQL, удалите файлы с данными из /var/lib/postgres, перемонтируйте внешний диск который сделали ранее от первой виртуальной машины ко второй и запустите PostgreSQL на второй машине так чтобы он работал с данными на внешнем диске, расскажите как вы это сделали и что в итоге получилось.
 
 - Чтоб не делать много работы я клонировал VM. Предварительно отключил диск.
 - Зашел на новую виртуалку.
