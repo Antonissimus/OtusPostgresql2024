@@ -116,4 +116,81 @@ relation|test_table|RowExclusiveLock|true   |479|{}      |
 
 ### 3. Воспроизведите взаимоблокировку трех транзакций. Можно ли разобраться в ситуации постфактум, изучая журнал сообщений?
 
+
+
+в 1м (pid 10688)
+```
+BEGIN;
+UPDATE test_table SET value = 10 WHERE id = 1;
+```
+во 2м (pid 10690)
+```
+BEGIN;
+UPDATE test_table SET value = 20 WHERE id = 2;
+UPDATE test_table SET value = 30 WHERE id = 1;
+```
+в 3м (pid 10692)
+```
+BEGIN;
+UPDATE test_table SET value = 40 WHERE id = 3;
+UPDATE test_table SET value = 50 WHERE id = 2;
+```
+
+снова в 1м (pid 10688)
+```
+BEGIN;
+UPDATE test_table SET value = 10 WHERE id = 3;
+```
+```
+ERROR:  deadlock detected
+DETAIL:  Process 10688 waits for ShareLock on transaction 777; blocked by process 10692.
+Process 10692 waits for ShareLock on transaction 776; blocked by process 10690.
+Process 10690 waits for ShareLock on transaction 775; blocked by process 10688.
+HINT:  See server log for query details.
+CONTEXT:  while updating tuple (0,15) in relation "test_table"
+```
+
+Посмотрим что в логах:
+```
+2025-02-01 11:07:57.373 UTC [10690] prsuser@prsdb LOG:  process 10690 still waiting for ShareLock on transaction 775 after 200.351 ms
+2025-02-01 11:07:57.373 UTC [10690] prsuser@prsdb DETAIL:  Process holding the lock: 10688. Wait queue: 10690.
+2025-02-01 11:07:57.373 UTC [10690] prsuser@prsdb CONTEXT:  while updating tuple (0,13) in relation "test_table"
+2025-02-01 11:07:57.373 UTC [10690] prsuser@prsdb STATEMENT:  UPDATE test_table SET value = 30 WHERE id = 1
+2025-02-01 11:08:29.883 UTC [10692] prsuser@prsdb LOG:  process 10692 still waiting for ShareLock on transaction 776 after 200.440 ms
+2025-02-01 11:08:29.883 UTC [10692] prsuser@prsdb DETAIL:  Process holding the lock: 10690. Wait queue: 10692.
+2025-02-01 11:08:29.883 UTC [10692] prsuser@prsdb CONTEXT:  while updating tuple (0,14) in relation "test_table"
+2025-02-01 11:08:29.883 UTC [10692] prsuser@prsdb STATEMENT:  UPDATE test_table SET value = 50 WHERE id = 2
+2025-02-01 11:08:50.369 UTC [10688] prsuser@prsdb WARNING:  there is already a transaction in progress
+2025-02-01 11:08:50.587 UTC [10688] prsuser@prsdb LOG:  process 10688 detected deadlock while waiting for ShareLock on transaction 777 after 200.219 ms
+2025-02-01 11:08:50.587 UTC [10688] prsuser@prsdb DETAIL:  Process holding the lock: 10692. Wait queue: .
+2025-02-01 11:08:50.587 UTC [10688] prsuser@prsdb CONTEXT:  while updating tuple (0,15) in relation "test_table"
+2025-02-01 11:08:50.587 UTC [10688] prsuser@prsdb STATEMENT:  UPDATE test_table SET value = 10 WHERE id = 3
+2025-02-01 11:08:50.587 UTC [10688] prsuser@prsdb ERROR:  deadlock detected
+2025-02-01 11:08:50.587 UTC [10688] prsuser@prsdb DETAIL:  Process 10688 waits for ShareLock on transaction 777; blocked by process 10692.
+        Process 10692 waits for ShareLock on transaction 776; blocked by process 10690.
+        Process 10690 waits for ShareLock on transaction 775; blocked by process 10688.
+        Process 10688: UPDATE test_table SET value = 10 WHERE id = 3
+        Process 10692: UPDATE test_table SET value = 50 WHERE id = 2
+        Process 10690: UPDATE test_table SET value = 30 WHERE id = 1
+2025-02-01 11:08:50.587 UTC [10688] prsuser@prsdb HINT:  See server log for query details.
+2025-02-01 11:08:50.587 UTC [10688] prsuser@prsdb CONTEXT:  while updating tuple (0,15) in relation "test_table"
+2025-02-01 11:08:50.587 UTC [10688] prsuser@prsdb STATEMENT:  UPDATE test_table SET value = 10 WHERE id = 3
+2025-02-01 11:08:50.587 UTC [10690] prsuser@prsdb LOG:  process 10690 acquired ShareLock on transaction 775 after 53414.509 ms
+2025-02-01 11:08:50.587 UTC [10690] prsuser@prsdb CONTEXT:  while updating tuple (0,13) in relation "test_table"
+2025-02-01 11:08:50.587 UTC [10690] prsuser@prsdb STATEMENT:  UPDATE test_table SET value = 30 WHERE id = 1
+
+```
+
+Можно увидеть, что виновник взаимной блокировки процесс 10692: Process holding the lock: 10692. Также видно какие запросы привели к блокировке.
+
+Process 10688: UPDATE test_table SET value = 10 WHERE id = 3
+Process 10692: UPDATE test_table SET value = 50 WHERE id = 2
+Process 10690: UPDATE test_table SET value = 30 WHERE id = 1
+
 ### 4. Могут ли две транзакции, выполняющие единственную команду UPDATE одной и той же таблицы (без where), заблокировать друг друга?
+Да, могут.  
+
+Если PostgreSQL решит использовать блокировку на уровне таблицы (например, AccessExclusiveLock), то первая транзакция, начавшая UPDATE, заблокирует всю таблицу. Вторая транзакция будет ждать, пока первая не завершится. В этом случае взаимная блокировка невозможна, так как вторая транзакция просто будет ждать. 
+
+Если UPDATE выполняется на таблице с большим количеством строк, PostgreSQL может блокировать строки по одной (RowExclusiveLock). В этом случае две транзакции могут начать блокировать разные строки, и если они попытаются заблокировать строки, уже заблокированные другой транзакцией, это может привести к взаимной блокировке.
+
