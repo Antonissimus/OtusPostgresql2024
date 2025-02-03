@@ -166,7 +166,7 @@ repldb=# select * from test2;
 repldb=# select * from test;
  id |          data
 ----+------------------------
-  3 | Data from VM 1
+  1 | Data from VM 1
 (1 row)
 ```
 
