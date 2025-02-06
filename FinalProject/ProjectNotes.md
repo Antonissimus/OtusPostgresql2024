@@ -1,12 +1,17 @@
 # Ход выполнения проекта
 Тема проекта - Настройка облачной инфраструктуры в рамках миграция БД web приложения с MS SQL Server на PostgreSQL.
+В процессе деплоя используется ansible
 ## 1. Подготовка окружения
 Кластер postgres развернут в облаке. Операционная система - Linux (Ubuntu 24.04). Параметры виртуальной машины: 8CPU, 16 RAM, 160Gb. 
 ### 1.1. Установка postgresql
 БД (PostgreSQL 17)установлена на хосте, приложение и агент мониторинга установлены в Docker.
+- Подготовить плейбук для установки postgresql 17 [deploy_postgres_play.yml](vm1/deploy_postgres_play.yml)
+- Запустить playbook
+```bash
+ansible-playbook deploy_postgres_play.yml
+```
 ### 1.2. Первоначальная настройка конфигурации postgresql
 ### 1.3. Создание пользователя для приложения
-
 ## 2. Миграция MS SQL на postgresql
 Выполняется коллегами.
 ### 2.1. Перенос таблиц
@@ -14,7 +19,37 @@
 ### 2.3. Перенос представлений
 ### 2.4. Перенос данных
 ## 3. Настройка репликации (для демострации)
+Для демонстрационных целей реплика будет настроена на том же хосте в docker контейнере.
+### 3.1. Конфигурация основного кластера
+- Добавить в pg_hba.conf:
+```conf
+host    replication     replicator     0.0.0.0/0               md5
+```
+- Добавить в postgresql.conf:
+```conf
+wal_level = replica
+max_wal_senders = 10
+wal_keep_size = 1GB
+```
+- Создать пользователя для репликации
+```bash
+sudo -u postgres psql -c "CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD 'replicator_password';"
+```
+- Перезапустить кластер:
+```bash
+sudo systemctl restart postgresql
+```
 
+### 3.2. Конфигурация реплики
+- Создаем папку для реплики:
+```bash
+mkdir -p /mnt/data/replica_data
+chown -R 999:999 /mnt/data/replica_data
+```
+- Запустить playbook
+```bash
+ansible-playbook deploy_replicadocker_play.yml
+```
 ## 4. Настройка мониторинга для кластера postgresql 17
 - На виртуальной машине 1(ВМ1) развернут кластер postgresql 17 и docker.
 - На ВМ2 развернут docker.
@@ -74,6 +109,7 @@ sudo docker compose up -d
 - Нажать кнопку **New** -> **Import**.
 - Введите ID дашборда - 9628 и нажать **Load**.
 - Выбрать настроенный источник Prometheus нажать **Import**
+- Наблюдать результат настройки:
 
 ## 5. Настройка бэкапирования
 ### 5.1. Создание структуры папок и скрипта

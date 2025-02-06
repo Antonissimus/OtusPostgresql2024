@@ -1,0 +1,15 @@
+services:
+  postgres-replica:
+    image: postgres:17
+    container_name: postgres-replica
+    environment:
+      POSTGRES_USER: ${REPLICA_USER}
+      POSTGRES_PASSWORD: ${REPLICA_PASSWORD}
+      POSTGRES_DB: ${REPLICA_DB}
+    volumes:
+      - /mnt/app/replica/data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    command: >
+      -c "primary_conninfo=host=${MASTER_IP} port=5432 user=${REPLICA_USER} password=${REPLICA_PASSWORD}"
+    restart: always
