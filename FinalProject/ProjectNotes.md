@@ -1,16 +1,20 @@
 # Ход выполнения проекта
-Тема проекта - миграция БД web приложения с MS SQL Server на PostgreSQL.
+Тема проекта - Настройка облачной инфраструктуры в рамках миграция БД web приложения с MS SQL Server на PostgreSQL.
 ## 1. Подготовка окружения
-Кластер postgres развернут в облаке. Операционная система - Linux (Ubuntu 22.04). Параметры виртуальной машины: 8CPU, 16 RAM, 160Gb. БД и приложение установлены в Docker.
+Кластер postgres развернут в облаке. Операционная система - Linux (Ubuntu 24.04). Параметры виртуальной машины: 8CPU, 16 RAM, 160Gb. 
 ### 1.1. Установка postgresql
+БД (PostgreSQL 17)установлена на хосте, приложение и агент мониторинга установлены в Docker.
 ### 1.2. Первоначальная настройка конфигурации postgresql
 ### 1.3. Создание пользователя для приложения
+
 ## 2. Миграция MS SQL на postgresql
+Выполняется коллегами.
 ### 2.1. Перенос таблиц
 ### 2.2. Перенос функций и процедур
 ### 2.3. Перенос представлений
 ### 2.4. Перенос данных
-## 3. Настройка бэкапирования
+## 3. Настройка репликации (для демострации)
+
 ## 4. Настройка мониторинга для кластера postgresql 17
 - На виртуальной машине 1(ВМ1) развернут кластер postgresql 17 и docker.
 - На ВМ2 развернут docker.
@@ -70,3 +74,20 @@ sudo docker compose up -d
 - Нажать кнопку **New** -> **Import**.
 - Введите ID дашборда - 9628 и нажать **Load**.
 - Выбрать настроенный источник Prometheus нажать **Import**
+
+## 5. Настройка бэкапирования
+### 5.1. Создание структуры папок и скрипта
+### 5.2. Настройка сервиса и расписания.
+- Перенести файлы [postgres-backup.service](vm1/backup/postgres-backup.service) и [postgres-backup.timer](vm1/backup/postgres-backup.timer) на ВМ1.
+- Запустить сервис:
+```bash
+sudo systemctl enable postgres-backup.timer
+sudo systemctl start postgres-backup.timer
+```
+- Команды для проверки
+```bash
+sudo systemctl status postgres-backup.service 
+sudo systemctl status postgres-backup.timer         #Проверка таймера
+sudo journalctl -u postgres-backup.service -n 20    #проверка логов работы джобы 
+```
+### 5.3. Настройка ansible playbook

@@ -1,0 +1,63 @@
+# postgres_backup_playbook.yml
+---
+- name: Deploy PostgreSQL Backup Script and Service
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure backup directory exists
+      file:
+        path: /mnt/backups
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: '0755'
+
+    - name: Copy backup script
+      copy:
+        src: fullbackup.sh
+        dest: /usr/local/bin/fullbackup.sh
+        owner: postgres
+        group: postgres
+        mode: '0755'
+
+    - name: Create systemd service for PostgreSQL backup
+      copy:
+        content: |
+          [Unit]
+          Description=PostgreSQL Daily Backup Service
+          After=network.target
+
+          [Service]
+          Type=oneshot
+          User=postgres
+          ExecStart=/bin/bash /usr/local/bin/fullbackup.sh
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/postgres-backup.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Create systemd timer for PostgreSQL backup
+      copy:
+        content: |
+          [Unit]
+          Description=Run PostgreSQL Daily Backup at 2:00 AM
+
+          [Timer]
+          OnCalendar=*-*-* 02:00:00
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
+        dest: /etc/systemd/system/postgres-backup.timer
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Enable and start the backup timer
+      systemd:
+        name: postgres-backup.timer
+        enabled: yes
+        state: started

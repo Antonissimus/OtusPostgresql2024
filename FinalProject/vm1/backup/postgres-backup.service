@@ -1,0 +1,12 @@
+# /etc/systemd/system/postgres-backup.service
+[Unit]
+Description=PostgreSQL Daily Backup Service
+After=network.target
+
+[Service]
+Type=oneshot
+User=postgres
+ExecStart=/urs/scripts/fullbackup.sh
+
+[Install]
+WantedBy=multi-user.target
