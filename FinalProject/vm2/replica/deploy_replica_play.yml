@@ -1,0 +1,56 @@
+---
+- name: Deploy PostgreSQL Replica using Docker Compose
+  hosts: cloudru
+  become: yes
+  vars:
+    primary_ip: "192.168.1.107"
+    primary_port: 5555
+    replica_data_dir: "/mnt/data/replica"
+    replicator_user: "replicator"
+
+  tasks:
+    - name: remove /mnt/data/replica
+      file:
+        path: "{{ replica_data_dir }}"
+        state: absent
+
+    - name: Ensure replica directory exists
+      file:
+        path: "{{ replica_data_dir }}"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: "0755"
+
+    - name: Create replica claster
+      command: >
+        sudo -u postgres pg_createcluster -d {{ replica_data_dir }} 17 replica
+
+    - name: remove from /mnt/data/replica
+      shell: >
+        rm -rf /mnt/data/replica/*
+      args:
+        executable: /bin/bash
+
+    - name: Run pg_basebackup command
+      command: >
+        sudo -u postgres pg_basebackup -h {{ primary_ip }} -p {{ primary_port }} -D {{ replica_data_dir }} -U {{ replicator_user }} -R
+
+    - name: postgresql.conf
+      lineinfile:
+        path: /etc/postgresql/17/replica/postgresql.conf
+        line: "{{ item }}"
+        create: yes
+      with_items:
+        - "port = 5556"
+        - "listen_addresses = '*'"
+
+    - name: pg_hba.conf
+      lineinfile:
+        path: /etc/postgresql/17/replica/pg_hba.conf
+        line: "host all all 0.0.0.0/0 scram-sha-256"
+        create: yes
+
+    - name: Запуск PostgreSQL реплики
+      command: >
+        pg_ctlcluster 17 replica start

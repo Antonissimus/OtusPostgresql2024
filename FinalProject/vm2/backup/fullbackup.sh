@@ -1,15 +1,10 @@
 #!/bin/bash
 
-# Логирование
-LOG_FILE="/var/log/postgresql/fullbackup.log"
-exec >> $LOG_FILE 2>&1
-
 # Параметры
 BACKUP_DIR="/mnt/backups"
 DATE=$(date +%d%m%Y)
 BACKUP_FILE="$BACKUP_DIR/backup_$DATE.sql"
-ZIP_FILE="$BACKUP_DIR/backup_$DATE.zip"
-PG_USER="postgres"
+TAR_FILE="$BACKUP_DIR/backup_$DATE.tar.gz"
 PG_DUMP="/usr/bin/pg_dumpall"
 
 # Создание директории для бэкапов, если она не существует
@@ -20,7 +15,7 @@ echo "Начало бэкапа: $(date)"
 
 # Выполнение бэкапа
 echo "Выполнение бэкапа в файл: $BACKUP_FILE"
-$PG_DUMP -U $PG_USER -f $BACKUP_FILE
+$PG_DUMP -p 5556 -f $BACKUP_FILE
 
 # Проверка успешности выполнения бэкапа
 if [ $? -eq 0 ]; then
@@ -31,12 +26,12 @@ else
 fi
 
 # Архивирование бэкапа
-echo "Архивирование бэкапа в файл: $ZIP_FILE"
-zip $ZIP_FILE $BACKUP_FILE
+echo "Архивирование бэкапа в файл: $TAR_FILE"
+tar -czf $TAR_FILE -C $BACKUP_DIR $(basename $BACKUP_FILE)
 
 # Проверка успешности архивирования
 if [ $? -eq 0 ]; then
-    echo "Бэкап успешно заархивирован: $ZIP_FILE"
+    echo "Бэкап успешно заархивирован: $TAR_FILE"
 else
     echo "Ошибка при архивировании бэкапа"
     exit 1

@@ -1,25 +1,56 @@
 # Ход выполнения проекта
 Тема проекта - Настройка облачной инфраструктуры в рамках миграция БД web приложения с MS SQL Server на PostgreSQL.
-В процессе деплоя используется ansible
+В процессе деплоя используется ansible.
 ## 1. Подготовка окружения
-Кластер postgres развернут в облаке. Операционная система - Linux (Ubuntu 24.04). Параметры виртуальной машины: 8CPU, 16 RAM, 160Gb. 
+Кластер postgres развернут в облаке. Операционная система - Linux (Ubuntu 24.04). Параметры виртуальной машины: 8CPU, 16 RAM, 160Gb.
+- Предварительно настроить репозитарии postgresql-17 [prerequisites_play.yml](vm1/prerequisites_play.yml):
+```bash
+ansible-playbook prerequisites_play.yml
+```
+- Как опция, можно перенести данные postgres на отдельный диск [move_postgresql_folder_play.yml](vm1/move_postgresql_folder_play.yml):
+```bash
+ansible-playbook move_postgresql_folder_play.yml
+```
+   
 ### 1.1. Установка postgresql
-БД (PostgreSQL 17)установлена на хосте, приложение и агент мониторинга установлены в Docker.
+БД (PostgreSQL 17) установлена на хосте, приложение и агент мониторинга установлены в Docker.
 - Подготовить плейбук для установки postgresql 17 [deploy_postgres_play.yml](vm1/deploy_postgres_play.yml)
 - Запустить playbook
 ```bash
 ansible-playbook deploy_postgres_play.yml
 ```
 ### 1.2. Первоначальная настройка конфигурации postgresql
+- Первоначальные настройка выбраны исходя из параметров хоста:
+```conf
+shared_buffers = 4GB
+work_mem = 64MB
+maintenance_work_mem = 1GB
+effective_cache_size = 12GB
+checkpoint_timeout = 15min
+checkpoint_completion_target = 0.9
+wal_buffers = 16MB
+max_connections = 100
+autovacuum = on
+synchronous_commit = off
+random_page_cost = 1.1
+seq_page_cost = 1.0
+log_statement = 'all' #для отладки
+log_duration = on #для отладки
+```
 ### 1.3. Создание пользователя для приложения
+Выполняется при настройке приложения.
 ## 2. Миграция MS SQL на postgresql
 Выполняется коллегами.
 ### 2.1. Перенос таблиц
+Выполняется коллегами.
 ### 2.2. Перенос функций и процедур
+Выполняется коллегами.
 ### 2.3. Перенос представлений
+Выполняется коллегами.
 ### 2.4. Перенос данных
+Выполняется коллегами.
 ## 3. Настройка репликации (для демострации)
-Для демонстрационных целей реплика будет настроена на том же хосте в docker контейнере.
+Для демонстрационных целей реплика будет настроена на ВМ2.
 ### 3.1. Конфигурация основного кластера
 - Добавить в pg_hba.conf:
 ```conf
@@ -37,18 +68,45 @@ sudo -u postgres psql -c "CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD
 ```
 - Перезапустить кластер:
 ```bash
-sudo systemctl restart postgresql
+sudo pg_ctlcluster 17 main restart
 ```
 
 ### 3.2. Конфигурация реплики
 - Создаем папку для реплики:
 ```bash
-mkdir -p /mnt/data/replica_data
-chown -R 999:999 /mnt/data/replica_data
+mkdir -p /mnt/data/replica
+chown -R postgres:postgres /mnt/data/replica
 ```
-- Запустить playbook
+- Создать кластер для реплики:
+```bash 
+sudo -u postgres pg_createcluster -d /mnt/data/replica 17 replica
+```
+- Удалить содержимое /mnt/data/replica
+- Добавить файлик ~/.pgpass для пользователя postgres, чтоб подставлять пароль в плейбуке
+```
+[master ip]:[master port]:*:replicator:[replicator password]
+```
+- Запустить бэкап основного кластера
+```bash 
+sudo -u postgres pg_basebackup -U replicator -h 192.168.1.107 -p 5555 -R -D /mnt/data/replica
+```
+- Добавить нужные параметры в postgresql.conf
+```conf
+port=5556
+listen_addresses = '*'
+```
+- Добавить правило доступа в pg_hba.conf
+```conf
+host all all 0.0.0.0/0 scram-sha-256
+```
+- Стартовать реплику
 ```bash
-ansible-playbook deploy_replicadocker_play.yml
+sudo pg_ctlcluster 17 replica start
+```
+
+- Можно запустить playbook [deploy_replica_play.yml](vm2/replica/deploy_replica_play.yml)
+```bash
+ansible-playbook deploy_replica_play.yml
 ```
 ## 4. Настройка мониторинга для кластера postgresql 17
 - На виртуальной машине 1(ВМ1) развернут кластер postgresql 17 и docker.

@@ -1,0 +1,50 @@
+---
+- name: Install and configure PostgreSQL 17 on Ubuntu 24.04
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install required packages (curl and ca-certificates)
+      apt:
+        name:
+          - curl
+          - ca-certificates
+        state: present
+        update_cache: yes
+
+    - name: Create directory for PostgreSQL repository signing key
+      file:
+        path: /usr/share/postgresql-common/pgdg
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Download PostgreSQL repository signing key
+      get_url:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        dest: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+        mode: '0644'
+
+    - name: Add PostgreSQL repository to sources list
+      copy:
+        dest: /etc/apt/sources.list.d/pgdg.list
+        content: |
+          deb [arch=amd64 signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+#    - name: Install PostgreSQL 17
+#      apt:
+#       name: postgresql-17
+#        state: present
+
+#    - name: Ensure PostgreSQL service is running and enabled
+#      service:
+#        name: postgresql
+#        state: started
+#        enabled: yes

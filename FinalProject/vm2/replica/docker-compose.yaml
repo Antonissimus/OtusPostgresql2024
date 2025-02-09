@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${REPLICA_PASSWORD}
       POSTGRES_DB: ${REPLICA_DB}
     volumes:
-      - /mnt/app/replica/data:/var/lib/postgresql/data
+      - /mnt/data/replica:/var/lib/postgresql/data
     ports:
       - "5433:5432"
     command: >

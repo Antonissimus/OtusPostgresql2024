@@ -1,0 +1,65 @@
+- hosts: cloudru
+  become: yes
+  roles:
+    - role: geerlingguy.postgresql
+      vars:
+        schemas:
+          - dbo
+          - identity
+        postgresql_version: "17"  # Укажите нужную версию PostgreSQL
+
+        postgresql_python_library: python3-psycopg2
+        postgresql_user: postgres
+        postgresql_group: postgres
+        postgresql_service_state: started
+        postgresql_service_enabled: true
+        postgresql_hba_entries:
+          - { type: local, database: all, user: postgres, auth_method: peer }
+          - { type: local, database: all, user: all, auth_method: peer }
+          - { type: host, database: all, user: all, address: '0.0.0.0/0',auth_method:  md5 }
+          - { type: host, database: all, user: all, address: '::1/128', auth_method: md5 }
+          - { type: host, database: replication, user: replicator, address: '0.0.0.0/0', auth_method: md5 }
+        postgres_users_no_log: false
+        postgresql_global_config_options:
+          - option: "listen_addresses"
+            value: '*'
+          - option: unix_socket_directories
+            value: '{{ postgresql_unix_socket_directories | join(",") }}'
+          - option: log_directory
+            value: 'log'
+          - option: port
+            value: 5555
+#          - option: shared_buffers
+#            value: 4GB
+#          - option: work_mem
+#            value: 64MB
+#          - option: maintenance_work_mem
+#            value: 1GB
+#          - option: effective_cache_size
+#            value: 12GB
+#          - option: checkpoint_timeout
+#            value: 15min
+#          - option: checkpoint_completion_target
+#            value: 0.9
+#          - option: wal_buffers
+#            value: 16MB
+#          - option: max_connections
+#            value: 100
+#          - option: autovacuum
+#            value: on
+#          - option: synchronous_commit
+#            value: off
+#          - option: random_page_cost
+#            value: 1.1
+#          - option: seq_page_cost
+#            value: 1.0
+#          - option: log_statement
+#            value: 'all'
+#          - option: log_duration
+#            value: on
+          - option: wal_level
+            value: 'replica'
+          - option: max_wal_senders
+            value: 10
+          - option: wal_keep_size
+            value: 1GB

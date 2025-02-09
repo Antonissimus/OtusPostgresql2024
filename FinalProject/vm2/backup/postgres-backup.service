@@ -6,7 +6,7 @@ After=network.target
 [Service]
 Type=oneshot
 User=postgres
-ExecStart=/urs/scripts/fullbackup.sh
+ExecStart=/usr/local/bin/fullbackup.sh
 
 [Install]
 WantedBy=multi-user.target

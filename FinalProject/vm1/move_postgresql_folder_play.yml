@@ -1,0 +1,59 @@
+---
+- name: Перемещение данных PostgreSQL и обновление ссылки
+  hosts: cloudru
+  become: yes
+  tasks:
+    - name: Остановка сервиса PostgreSQL
+      ansible.builtin.service:
+        name: postgresql
+        state: stopped
+
+    - name: Создание целевой директории, если она не существует
+      ansible.builtin.file:
+        path: /mnt/data/postgres
+        state: directory
+        mode: '0700'
+        owner: postgres
+        group: postgres
+
+    - name: Проверка, есть ли данные в исходной директории
+      ansible.builtin.stat:
+        path: /var/lib/postgresql/17/main/
+      register: source_data
+
+    - name: Проверка, есть ли данные в целевой директории
+      ansible.builtin.stat:
+        path: /mnt/data/postgres/
+      register: target_data
+
+    - name: Перемещение данных PostgreSQL в новую директорию
+      ansible.builtin.shell:
+        cmd: mv /var/lib/postgresql/17/main/* /mnt/data/postgres/
+      args:
+        chdir: /
+
+    - name: Установка прав владельца для новой директории (на случай, если что-то изменилось)
+      ansible.builtin.file:
+        path: /mnt/data/postgres
+        owner: postgres
+        group: postgres
+        recurse: yes  # Рекурсивно применяет права ко всем файлам и папкам
+
+    - name: Удаление старой директории
+      ansible.builtin.file:
+        path: /var/lib/postgresql/17/main
+        state: absent  # Удаляет директорию
+
+    - name: Создание символической ссылки на новую директорию
+      ansible.builtin.file:
+        src: /mnt/data/postgres
+        dest: /var/lib/postgresql/17/main
+        state: link
+        owner: postgres
+        group: postgres
+        mode: '0700'  # Права для символической ссылки
+
+    - name: Запуск сервиса PostgreSQL
+      ansible.builtin.service:
+        name: postgresql
+        state: started
