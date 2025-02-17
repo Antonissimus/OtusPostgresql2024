@@ -22,18 +22,18 @@ ansible-playbook deploy_postgres_play.yml
 ### 1.2. Первоначальная настройка конфигурации postgresql
 - Первоначальные настройка выбраны исходя из параметров хоста:
 ```conf
-shared_buffers = 4GB
-work_mem = 64MB
-maintenance_work_mem = 1GB
-effective_cache_size = 12GB
-checkpoint_timeout = 15min
-checkpoint_completion_target = 0.9
-wal_buffers = 16MB
-max_connections = 100
+shared_buffers = 4GB                # 25% от 16Gb
+work_mem = 64MB                     # Определяет объем памяти, доступный для операций сортировки и хеширования в каждом запросе
+maintenance_work_mem = 1GB          # Определяет объем памяти для операций обслуживания, таких как VACUUM, CREATE INDEX, ALTER TABLE
+effective_cache_size = 12GB         # Оценка объема памяти, доступного для кэширования данных на уровне ОС. 75% от 16Gb
+checkpoint_timeout = 15min          # Определяет, как часто PostgreSQL будет выполнять контрольные точки. 
+checkpoint_completion_target = 0.9  # Определяет, какую часть времени между контрольными точками можно использовать для записи данных. 
+wal_buffers = 16MB                  # Определяет объем памяти, выделенной для WAL
+max_connections = 100               # 
 autovacuum = on
-synchronous_commit = off
-random_page_cost = 1.1
-seq_page_cost = 1.0
+synchronous_commit = off            # Определяет, должен ли PostgreSQL ждать записи WAL на диск перед подтверждением транзакции.
+random_page_cost = 1.1              # Определяет стоимость случайного доступа к страницам на диске. Для ssd
+seq_page_cost = 1.0                 # Определяет стоимость последовательного доступа к страницам на диске. Для ssd
 log_statement = 'all' #для отладки
 log_duration = on #для отладки
 ```
