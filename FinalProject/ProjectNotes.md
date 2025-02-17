@@ -172,7 +172,7 @@ sudo docker compose up -d
 ## 5. Настройка бэкапирования
 ### 5.1. Создание структуры папок и скрипта
 ### 5.2. Настройка сервиса и расписания.
-- Перенести файлы [postgres-backup.service](vm1/backup/postgres-backup.service) и [postgres-backup.timer](vm1/backup/postgres-backup.timer) на ВМ1.
+- Перенести файлы [fullbackup.sh](vm2/backup/fullbackup.sh), [postgres-backup.service](vm1/backup/postgres-backup.service) и [postgres-backup.timer](vm1/backup/postgres-backup.timer) на ВМ2.
 - Запустить сервис:
 ```bash
 sudo systemctl enable postgres-backup.timer
@@ -184,4 +184,4 @@ sudo systemctl status postgres-backup.service
 sudo systemctl status postgres-backup.timer         #Проверка таймера
 sudo journalctl -u postgres-backup.service -n 20    #проверка логов работы джобы 
 ```
-### 5.3. Настройка ansible playbook
+
